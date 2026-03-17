@@ -20,16 +20,18 @@ Practice size preference: ${size || 'any'}
 State: ${state && state !== 'any' ? state : 'any US state'}
 Veterinary specialty: ${specialty && specialty !== 'any' ? specialty : 'any specialty'}
 Vet college attended: ${college && college !== 'any' ? college : 'any veterinary college'}
-${existing && existing.length ? `Already generated practices: ${existing.join(', ')} — generate ${count} different ones.` : ''}
+${existing && existing.length ? `Already generated practices: ${existing.join(', ')} - generate ${count} different ones.` : ''}
 
-Distribute fit scores realistically across the prospects.
-Use the "industry" field for the veterinary specialty/practice type.
-Use the "state" field for the US state${state && state !== 'any' ? ` — all prospects must be in ${state}` : ''}.
-Use the "vet_college" field for the vet school the contact attended${college && college !== 'any' ? ` — all prospects must have attended ${college}` : ''}.
-The "linkedin_hint" must be a full URL like "https://linkedin.com/in/firstname-lastname".
+Rules:
+- Distribute fit scores realistically across the prospects
+- Use "industry" for the veterinary specialty/practice type
+- Use "state" for the US state${state && state !== 'any' ? ` - all prospects must be in ${state}` : ''}
+- Use "vet_college" for the vet school the contact attended${college && college !== 'any' ? ` - all prospects must have attended ${college}` : ''}
+- "linkedin_hint" must be a full URL like "https://linkedin.com/in/firstname-lastname"
+- Do not use special characters like ampersands in any field values
 
-Respond ONLY with a valid JSON array (no markdown, no preamble) of ${count} objects with these exact keys:
-contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (one of: "Strong fit", "Good fit", "Possible fit"), outreach_angle (1 sentence personalized reason)`;
+Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation. Just the raw JSON array of ${count} objects with these exact keys:
+contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (must be exactly "Strong fit" or "Good fit" or "Possible fit"), outreach_angle`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -53,10 +55,16 @@ contact_name, title, company, industry, company_size, state, vet_college, linked
 
     const data = await response.json();
     const text = data.content.map(b => b.text || '').join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const prospects = JSON.parse(clean);
-
+    
+    // Extract JSON array from response robustly
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) {
+      return { statusCode: 500, body: JSON.stringify({ error: 'No JSON array found in response', raw: text.slice(0, 200) }) };
+    }
+    
+    const prospects = JSON.parse(match[0]);
     return { statusCode: 200, body: JSON.stringify({ prospects }) };
+
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
