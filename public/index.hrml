@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vet Leads — Veterinary Prospect Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream: #F7F4EE; --warm-white: #FDFBF7; --ink: #1A1814; --ink-soft: #4A4740;
+      --ink-muted: #8A8780; --sage: #5C7A5E; --sage-light: #EAF0EA; --sage-mid: #C2D4C3;
+      --amber: #C4812A; --amber-light: #FAF0E0; --rose: #B85C5C; --rose-light: #F5E8E8;
+      --border: rgba(26,24,20,0.12); --border-soft: rgba(26,24,20,0.07);
+      --radius: 12px; --radius-sm: 8px;
+    }
+    html { font-size: 16px; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; line-height: 1.6; }
+    header { background: var(--ink); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--cream); letter-spacing: -0.02em; }
+    .logo em { font-style: italic; color: var(--sage-mid); }
+    .tagline { font-size: 0.75rem; color: var(--ink-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    main { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .form-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; }
+    .form-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.3rem; letter-spacing: -0.02em; }
+    .form-subtitle { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 1.5rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .form-full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+    input, select { font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; color: var(--ink); background: var(--cream); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.65rem 0.875rem; outline: none; transition: border-color 0.15s; width: 100%; appearance: none; -webkit-appearance: none; }
+    input:focus, select:focus { border-color: var(--sage); }
+    input::placeholder { color: var(--ink-muted); }
+    .select-wrap { position: relative; }
+    .select-wrap::after { content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--ink-muted); pointer-events: none; }
+    .btn-generate { font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; font-weight: 500; background: var(--ink); color: var(--cream); border: none; border-radius: var(--radius-sm); padding: 0.75rem 1.5rem; cursor: pointer; width: 100%; margin-top: 0.5rem; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.01em; }
+    .btn-generate:hover { opacity: 0.88; }
+    .btn-generate:active { transform: scale(0.99); }
+    .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; ga
