@@ -215,7 +215,7 @@
     const btn=document.getElementById('generateBtn');btn.disabled=true;btn.textContent='Generating...';
     if(!append){allProspects=[];activeFilter='all';document.getElementById('results').innerHTML='<div class="loading-state">Finding veterinary prospects<span class="loading-dots"></span></div>';}
     try{
-      const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,service,existing:allProspects.map(p=>p.company)})});
+      const res=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,service,existing:allProspects.map(p=>p.company)})});
       const data=await res.json();
       if(!res.ok||data.error){document.getElementById('results').innerHTML=`<div class="error-box">Error: ${data.error||res.statusText}<code>${JSON.stringify(data)}</code></div>`;btn.disabled=false;btn.textContent='Generate veterinary prospects →';return;}
       allProspects=append?[...allProspects,...data.prospects]:data.prospects;render();
