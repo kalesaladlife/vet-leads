@@ -3,27 +3,33 @@ exports.handler = async function(event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { titleVal, size, state, service, existing } = JSON.parse(event.body);
+  const { titleVal, size, state, service, specialty, college, numProspects, existing } = JSON.parse(event.body);
 
   if (!titleVal || !service) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
   }
 
-  const prompt = `You are a B2B lead generation expert specializing in the veterinary industry. Generate exactly 4 realistic fictional prospect leads for a professional services company targeting veterinary practices.
+  const count = numProspects || 4;
+
+  const prompt = `You are a B2B lead generation expert specializing in the veterinary industry. Generate exactly ${count} realistic fictional prospect leads for a professional services company targeting veterinary practices.
 
 Service being sold: ${service}
-Industry: Veterinary (always — small animal clinics, large animal practices, emergency vet hospitals, specialist referral centers, mixed practices, corporate vet groups, etc.)
+Industry: Veterinary
 Decision maker title: ${titleVal}
 Practice size preference: ${size || 'any'}
 State: ${state && state !== 'any' ? state : 'any US state'}
-${existing && existing.length ? `Already generated practices: ${existing.join(', ')} — generate 4 different ones.` : ''}
+Veterinary specialty: ${specialty && specialty !== 'any' ? specialty : 'any specialty'}
+Vet college attended: ${college && college !== 'any' ? college : 'any veterinary college'}
+${existing && existing.length ? `Already generated practices: ${existing.join(', ')} — generate ${count} different ones.` : ''}
 
-Distribute fit scores realistically: mix of Strong fit, Good fit, and Possible fit across the 4 prospects.
-Use the "industry" field for the veterinary specialty/practice type (e.g. "Small animal clinic", "Emergency & critical care", "Equine practice", "Corporate vet group").
-Use the "state" field for the US state the practice is located in${state && state !== 'any' ? ` — all prospects must be in ${state}` : ''}.
+Distribute fit scores realistically across the prospects.
+Use the "industry" field for the veterinary specialty/practice type.
+Use the "state" field for the US state${state && state !== 'any' ? ` — all prospects must be in ${state}` : ''}.
+Use the "vet_college" field for the vet school the contact attended${college && college !== 'any' ? ` — all prospects must have attended ${college}` : ''}.
+The "linkedin_hint" must be a full URL like "https://linkedin.com/in/firstname-lastname".
 
-Respond ONLY with a valid JSON array (no markdown, no preamble) of 4 objects with these exact keys:
-contact_name, title, company, industry, company_size, state, linkedin_hint, email_guess, fit_score (one of: "Strong fit", "Good fit", "Possible fit"), outreach_angle (1 sentence personalized reason)`;
+Respond ONLY with a valid JSON array (no markdown, no preamble) of ${count} objects with these exact keys:
+contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (one of: "Strong fit", "Good fit", "Possible fit"), outreach_angle (1 sentence personalized reason)`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -35,7 +41,7 @@ contact_name, title, company, industry, company_size, state, linkedin_hint, emai
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
