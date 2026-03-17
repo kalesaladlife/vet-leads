@@ -26,6 +26,7 @@
     .form-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.3rem; letter-spacing: -0.02em; }
     .form-subtitle { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 1.5rem; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
     .form-full { grid-column: 1 / -1; }
     .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
     label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
@@ -61,7 +62,8 @@
     .card-field { font-size: 0.8125rem; }
     .card-field .lbl { color: var(--ink-muted); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.15rem; }
     .card-field .val { color: var(--ink); }
-    .card-field .val.link { color: #3A5F9A; }
+    .card-field .val.link { color: #3A5F9A; text-decoration: none; }
+    .card-field .val.link:hover { text-decoration: underline; }
     .outreach-block { grid-column: 1 / -1; background: var(--sage-light); border-radius: var(--radius-sm); padding: 0.75rem 1rem; font-size: 0.8125rem; color: var(--ink-soft); line-height: 1.6; }
     .outreach-block strong { color: var(--sage); font-weight: 500; }
     .loading-state { text-align: center; padding: 3rem 1rem; color: var(--ink-muted); font-size: 0.9375rem; }
@@ -74,7 +76,7 @@
     .btn-more { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; background: var(--ink); color: var(--cream); border: none; border-radius: var(--radius-sm); padding: 0.6rem 1.25rem; cursor: pointer; transition: opacity 0.15s; }
     .btn-more:hover { opacity: 0.85; }
     .empty-state { text-align: center; padding: 2.5rem; color: var(--ink-muted); font-size: 0.9rem; }
-    @media (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } .form-full { grid-column: 1; } header { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
+    @media (max-width: 620px) { .form-grid, .form-grid-2 { grid-template-columns: 1fr; } .form-full { grid-column: 1; } header { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
   </style>
 </head>
 <body>
@@ -167,6 +169,78 @@
         <input type="text" id="service" placeholder="e.g. HR consulting, practice management software, staffing" />
       </div>
     </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label for="specialty">Veterinary specialty</label>
+        <div class="select-wrap">
+          <select id="specialty">
+            <option value="any">Any specialty</option>
+            <option value="Small animal">Small animal</option>
+            <option value="Large animal">Large animal</option>
+            <option value="Equine">Equine</option>
+            <option value="Mixed practice">Mixed practice</option>
+            <option value="Emergency & critical care">Emergency & critical care</option>
+            <option value="Exotic & zoo">Exotic & zoo</option>
+            <option value="Avian">Avian</option>
+            <option value="Dermatology">Dermatology</option>
+            <option value="Oncology">Oncology</option>
+            <option value="Surgery">Surgery</option>
+            <option value="Internal medicine">Internal medicine</option>
+            <option value="Cardiology">Cardiology</option>
+            <option value="Neurology">Neurology</option>
+            <option value="Ophthalmology">Ophthalmology</option>
+            <option value="Corporate group">Corporate group</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="college">Vet college attended</label>
+        <div class="select-wrap">
+          <select id="college">
+            <option value="any">Any college</option>
+            <option value="Auburn University">Auburn University</option>
+            <option value="Colorado State University">Colorado State University</option>
+            <option value="Cornell University">Cornell University</option>
+            <option value="Iowa State University">Iowa State University</option>
+            <option value="Kansas State University">Kansas State University</option>
+            <option value="Lincoln Memorial University">Lincoln Memorial University</option>
+            <option value="Louisiana State University">Louisiana State University</option>
+            <option value="Michigan State University">Michigan State University</option>
+            <option value="Mississippi State University">Mississippi State University</option>
+            <option value="North Carolina State University">NC State University</option>
+            <option value="Ohio State University">Ohio State University</option>
+            <option value="Oklahoma State University">Oklahoma State University</option>
+            <option value="Oregon State University">Oregon State University</option>
+            <option value="Purdue University">Purdue University</option>
+            <option value="Texas A&M University">Texas A&M University</option>
+            <option value="Tufts University">Tufts University</option>
+            <option value="UC Davis">UC Davis</option>
+            <option value="University of Florida">University of Florida</option>
+            <option value="University of Georgia">University of Georgia</option>
+            <option value="University of Illinois">University of Illinois</option>
+            <option value="University of Minnesota">University of Minnesota</option>
+            <option value="University of Missouri">University of Missouri</option>
+            <option value="University of Pennsylvania">University of Pennsylvania</option>
+            <option value="University of Tennessee">University of Tennessee</option>
+            <option value="University of Wisconsin">University of Wisconsin</option>
+            <option value="Virginia Tech">Virginia Tech</option>
+            <option value="Washington State University">Washington State University</option>
+            <option value="Western University of Health Sciences">Western University</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="numProspects">Number of prospects</label>
+        <div class="select-wrap">
+          <select id="numProspects">
+            <option value="4">4 prospects</option>
+            <option value="8">8 prospects</option>
+            <option value="12">12 prospects</option>
+            <option value="16">16 prospects</option>
+          </select>
+        </div>
+      </div>
+    </div>
     <button class="btn-generate" id="generateBtn" onclick="generate(false)">Generate veterinary prospects →</button>
     <div id="formError"></div>
   </div>
@@ -183,6 +257,7 @@
   function initials(name){return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
   function fitClass(score){if(score==='Strong fit')return 'fit-strong';if(score==='Good fit')return 'fit-good';return 'fit-possible';}
   function filtered(){if(activeFilter==='all')return allProspects;const map={strong:'Strong fit',good:'Good fit',possible:'Possible fit'};return allProspects.filter(p=>p.fit_score===map[activeFilter]);}
+  function linkedinUrl(hint){if(!hint)return '';if(hint.startsWith('http'))return hint;return 'https://'+hint;}
   function render(){
     if(!allProspects.length)return;
     const vis=filtered();
@@ -191,16 +266,17 @@
       const av=avatarStyles[i%avatarStyles.length];
       const map={strong:'Strong fit',good:'Good fit',possible:'Possible fit'};
       const hidden=activeFilter!=='all'&&p.fit_score!==map[activeFilter]?'hidden':'';
-      return `<div class="prospect-card ${hidden}"><div class="card-top"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(p.contact_name)}</div><div class="card-name"><h3>${p.contact_name}</h3><p>${p.title} · ${p.company}</p></div><span class="fit-badge ${fitClass(p.fit_score)}">${p.fit_score}</span></div><div class="card-grid"><div class="card-field"><div class="lbl">Specialty</div><div class="val">${p.industry}</div></div><div class="card-field"><div class="lbl">Practice size</div><div class="val">${p.company_size}</div></div><div class="card-field"><div class="lbl">State</div><div class="val">${p.state||'—'}</div></div><div class="card-field"><div class="lbl">LinkedIn</div><div class="val link">${p.linkedin_hint}</div></div><div class="card-field"><div class="lbl">Email guess</div><div class="val">${p.email_guess}</div></div><div class="outreach-block"><strong>Outreach angle:</strong> ${p.outreach_angle}</div></div></div>`;
+      const liUrl=linkedinUrl(p.linkedin_hint);
+      return `<div class="prospect-card ${hidden}"><div class="card-top"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(p.contact_name)}</div><div class="card-name"><h3>${p.contact_name}</h3><p>${p.title} · ${p.company}</p></div><span class="fit-badge ${fitClass(p.fit_score)}">${p.fit_score}</span></div><div class="card-grid"><div class="card-field"><div class="lbl">Specialty</div><div class="val">${p.industry}</div></div><div class="card-field"><div class="lbl">Practice size</div><div class="val">${p.company_size}</div></div><div class="card-field"><div class="lbl">State</div><div class="val">${p.state||'—'}</div></div><div class="card-field"><div class="lbl">Vet college</div><div class="val">${p.vet_college||'—'}</div></div><div class="card-field"><div class="lbl">LinkedIn</div><div class="val"><a class="link" href="${liUrl}" target="_blank">${p.linkedin_hint}</a></div></div><div class="card-field"><div class="lbl">Email guess</div><div class="val">${p.email_guess}</div></div><div class="outreach-block"><strong>Outreach angle:</strong> ${p.outreach_angle}</div></div></div>`;
     }).join('');
     const empty=vis.length===0?'<div class="empty-state">No prospects match this filter.</div>':'';
-    document.getElementById('results').innerHTML=`<div class="toolbar"><div class="filter-pills"><button class="pill ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">All (${counts.all})</button><button class="pill ${activeFilter==='strong'?'active':''}" onclick="setFilter('strong')">Strong fit (${counts.strong})</button><button class="pill ${activeFilter==='good'?'active':''}" onclick="setFilter('good')">Good fit (${counts.good})</button><button class="pill ${activeFilter==='possible'?'active':''}" onclick="setFilter('possible')">Possible fit (${counts.possible})</button></div><button class="btn-export" onclick="exportCSV()">Export CSV</button></div>${cards}${empty}<div class="bottom-bar"><span class="count-label">${vis.length} prospect${vis.length!==1?'s':''} shown</span><button class="btn-more" onclick="generate(true)">Load 4 more →</button></div>`;
+    document.getElementById('results').innerHTML=`<div class="toolbar"><div class="filter-pills"><button class="pill ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">All (${counts.all})</button><button class="pill ${activeFilter==='strong'?'active':''}" onclick="setFilter('strong')">Strong fit (${counts.strong})</button><button class="pill ${activeFilter==='good'?'active':''}" onclick="setFilter('good')">Good fit (${counts.good})</button><button class="pill ${activeFilter==='possible'?'active':''}" onclick="setFilter('possible')">Possible fit (${counts.possible})</button></div><button class="btn-export" onclick="exportCSV()">Export CSV</button></div>${cards}${empty}<div class="bottom-bar"><span class="count-label">${vis.length} prospect${vis.length!==1?'s':''} shown</span><button class="btn-more" onclick="generate(true)">Load more →</button></div>`;
   }
   function setFilter(f){activeFilter=f;render();}
   function exportCSV(){
     const rows=filtered();if(!rows.length)return;
-    const headers=['Contact Name','Title','Practice','Specialty','Practice Size','State','LinkedIn','Email','Fit Score','Outreach Angle'];
-    const lines=rows.map(p=>[p.contact_name,p.title,p.company,p.industry,p.company_size,p.state||'',p.linkedin_hint,p.email_guess,p.fit_score,p.outreach_angle].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+    const headers=['Contact Name','Title','Practice','Specialty','Practice Size','State','Vet College','LinkedIn URL','Email','Fit Score','Outreach Angle'];
+    const lines=rows.map(p=>[p.contact_name,p.title,p.company,p.industry,p.company_size,p.state||'',p.vet_college||'',linkedinUrl(p.linkedin_hint),p.email_guess,p.fit_score,p.outreach_angle].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
     const csv=[headers.join(','),...lines].join('\n');
     const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`vet-prospects-${activeFilter}.csv`;a.click();URL.revokeObjectURL(url);
@@ -210,12 +286,15 @@
     const size=document.getElementById('size').value;
     const state=document.getElementById('state').value;
     const service=document.getElementById('service').value.trim();
+    const specialty=document.getElementById('specialty').value;
+    const college=document.getElementById('college').value;
+    const numProspects=parseInt(document.getElementById('numProspects').value);
     document.getElementById('formError').innerHTML='';
     if(!titleVal||!service){document.getElementById('formError').innerHTML='<div class="error-box">Please fill in both the decision maker title and your service.</div>';return;}
     const btn=document.getElementById('generateBtn');btn.disabled=true;btn.textContent='Generating...';
     if(!append){allProspects=[];activeFilter='all';document.getElementById('results').innerHTML='<div class="loading-state">Finding veterinary prospects<span class="loading-dots"></span></div>';}
     try{
-      const res=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,service,existing:allProspects.map(p=>p.company)})});
+      const res=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,service,specialty,college,numProspects,existing:allProspects.map(p=>p.company)})});
       const data=await res.json();
       if(!res.ok||data.error){document.getElementById('results').innerHTML=`<div class="error-box">Error: ${data.error||res.statusText}<code>${JSON.stringify(data)}</code></div>`;btn.disabled=false;btn.textContent='Generate veterinary prospects →';return;}
       allProspects=append?[...allProspects,...data.prospects]:data.prospects;render();
