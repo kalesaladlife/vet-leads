@@ -53,18 +53,19 @@ contact_name, title, company, industry, company_size, state, vet_college, linked
       return { statusCode: response.status, body: JSON.stringify({ error: errText }) };
     }
 
-    const data = await response.json();
+   const data = await response.json();
     const text = data.content.map(b => b.text || '').join('');
     
-    // Extract JSON array from response robustly
-    const match = text.match(/\[[\s\S]*\]/);
+    // Clean and extract JSON
+    const cleaned = text.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim();
+    const match = cleaned.match(/\[.*\]/s);
     if (!match) {
       return { statusCode: 500, body: JSON.stringify({ error: 'No JSON array found in response', raw: text.slice(0, 200) }) };
     }
     
     const prospects = JSON.parse(match[0]);
     return { statusCode: 200, body: JSON.stringify({ prospects }) };
-
+    
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
