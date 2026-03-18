@@ -29,9 +29,11 @@ Rules:
 - Use "vet_college" for the vet school the contact attended${college && college !== 'any' ? ` - all prospects must have attended ${college}` : ''}
 - "linkedin_hint" must be a full URL like "https://linkedin.com/in/firstname-lastname"
 - Do not use special characters like ampersands in any field values
+- "email_subject" should be a short, personalized cold outreach subject line referencing their practice or role
+- "email_body" should be a 3-4 sentence personalized cold email using their first name, referencing their practice name, specialty, and why the service would help them specifically. End with a call to action to schedule a quick call. Do not use special characters or line breaks — write it as a single flowing paragraph.
 
 Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation. Just the raw JSON array of ${count} objects with these exact keys:
-contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (must be exactly "Strong fit" or "Good fit" or "Possible fit"), outreach_angle`;
+contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (must be exactly "Strong fit" or "Good fit" or "Possible fit"), outreach_angle, email_subject, email_body`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -53,19 +55,18 @@ contact_name, title, company, industry, company_size, state, vet_college, linked
       return { statusCode: response.status, body: JSON.stringify({ error: errText }) };
     }
 
-   const data = await response.json();
+    const data = await response.json();
     const text = data.content.map(b => b.text || '').join('');
-    
-    // Clean and extract JSON
+
     const cleaned = text.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim();
     const match = cleaned.match(/\[.*\]/s);
     if (!match) {
       return { statusCode: 500, body: JSON.stringify({ error: 'No JSON array found in response', raw: text.slice(0, 200) }) };
     }
-    
+
     const prospects = JSON.parse(match[0]);
     return { statusCode: 200, body: JSON.stringify({ prospects }) };
-    
+
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
