@@ -1,310 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vet Leads — Veterinary Prospect Generator</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --cream: #F7F4EE; --warm-white: #FDFBF7; --ink: #1A1814; --ink-soft: #4A4740;
-      --ink-muted: #8A8780; --sage: #5C7A5E; --sage-light: #EAF0EA; --sage-mid: #C2D4C3;
-      --amber: #C4812A; --amber-light: #FAF0E0; --rose: #B85C5C; --rose-light: #F5E8E8;
-      --border: rgba(26,24,20,0.12); --border-soft: rgba(26,24,20,0.07);
-      --radius: 12px; --radius-sm: 8px;
+exports.handler = async function(event) {
+  console.log('Function called, method:', event.httpMethod);
+  console.log('Body received:', event.body ? event.body.slice(0, 100) : 'no body');
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(event.body);
+    console.log('Parsed OK, titleVal:', parsed.titleVal);
+  } catch(e) {
+    console.log('Parse error:', e.message);
+    return { statusCode: 400, body: JSON.stringify({ error: 'Bad JSON: ' + e.message }) };
+  }
+
+  const { titleVal, size, state, service, specialty, college, numProspects, existing } = parsed;
+
+  if (!titleVal || !service) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
+  }
+
+  const count = numProspects || 4;
+
+  const prompt = `You are a B2B lead generation expert specializing in the veterinary industry. Generate exactly ${count} realistic fictional prospect leads for a professional services company targeting veterinary practices.
+
+Service being sold: ${service}
+Industry: Veterinary
+Decision maker title: ${titleVal}
+Practice size preference: ${size || 'any'}
+State: ${state && state !== 'any' ? state : 'any US state'}
+Veterinary specialty: ${specialty && specialty !== 'any' ? specialty : 'any specialty'}
+Vet college attended: ${college && college !== 'any' ? college : 'any veterinary college'}
+${existing && existing.length ? `Already generated practices: ${existing.join(', ')} - generate ${count} different ones.` : ''}
+
+Rules:
+- Distribute fit scores realistically across the prospects
+- Use "industry" for the veterinary specialty/practice type
+- Use "state" for the US state${state && state !== 'any' ? ` - all prospects must be in ${state}` : ''}
+- Use "vet_college" for the vet school the contact attended${college && college !== 'any' ? ` - all prospects must have attended ${college}` : ''}
+- "linkedin_hint" must be a full URL like "https://linkedin.com/in/firstname-lastname"
+- Do not use special characters like ampersands in any field values
+- "email_subject" should be a short personalized cold outreach subject line referencing their practice or role
+- "email_body" should be a 3-4 sentence personalized cold email using their first name, referencing their practice name, specialty, and why the service would help them specifically. End with a call to action to schedule a quick call. Write it as a single flowing paragraph with no line breaks or special characters.
+
+Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation. Just the raw JSON array of ${count} objects with these exact keys:
+contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (must be exactly "Strong fit" or "Good fit" or "Possible fit"), outreach_angle, email_subject, email_body`;
+
+  try {
+    console.log('Calling Anthropic API...');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    console.log('Anthropic response status:', response.status);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.log('Anthropic error:', errText.slice(0, 200));
+      return { statusCode: response.status, body: JSON.stringify({ error: errText }) };
     }
-    html { font-size: 16px; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; line-height: 1.6; }
-    header { background: var(--ink); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; }
-    .logo { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--cream); letter-spacing: -0.02em; }
-    .logo em { font-style: italic; color: var(--sage-mid); }
-    .tagline { font-size: 0.75rem; color: var(--ink-muted); letter-spacing: 0.08em; text-transform: uppercase; }
-    main { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
-    .form-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; }
-    .form-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.3rem; letter-spacing: -0.02em; }
-    .form-subtitle { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 1.5rem; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .form-full { grid-column: 1 / -1; }
-    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-    label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
-    input, select { font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; color: var(--ink); background: var(--cream); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.65rem 0.875rem; outline: none; transition: border-color 0.15s; width: 100%; appearance: none; -webkit-appearance: none; }
-    input:focus, select:focus { border-color: var(--sage); }
-    input::placeholder { color: var(--ink-muted); }
-    .select-wrap { position: relative; }
-    .select-wrap::after { content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--ink-muted); pointer-events: none; }
-    .btn-generate { font-family: 'DM Sans', sans-serif; font-size: 0.9375rem; font-weight: 500; background: var(--ink); color: var(--cream); border: none; border-radius: var(--radius-sm); padding: 0.75rem 1.5rem; cursor: pointer; width: 100%; margin-top: 0.5rem; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.01em; }
-    .btn-generate:hover { opacity: 0.88; }
-    .btn-generate:active { transform: scale(0.99); }
-    .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; }
-    .filter-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .pill { font-family: 'DM Sans', sans-serif; font-size: 0.8125rem; padding: 0.3rem 0.875rem; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--ink-soft); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-    .pill:hover { background: var(--warm-white); }
-    .pill.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
-    .btn-export { font-family: 'DM Sans', sans-serif; font-size: 0.8125rem; padding: 0.3rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--warm-white); color: var(--ink-soft); cursor: pointer; transition: background 0.15s; }
-    .btn-export:hover { background: var(--cream); }
-    .prospect-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 0.875rem; transition: box-shadow 0.15s; }
-    .prospect-card:hover { box-shadow: 0 2px 12px rgba(26,24,20,0.07); }
-    .prospect-card.hidden { display: none; }
-    .card-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-    .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 500; flex-shrink: 0; }
-    .card-name { flex: 1; }
-    .card-name h3 { font-size: 0.9375rem; font-weight: 500; color: var(--ink); }
-    .card-name p { font-size: 0.8125rem; color: var(--ink-muted); }
-    .fit-badge { font-size: 0.6875rem; font-weight: 500; padding: 0.25rem 0.75rem; border-radius: 999px; letter-spacing: 0.03em; white-space: nowrap; }
-    .fit-strong { background: var(--sage-light); color: var(--sage); }
-    .fit-good { background: #E8EFF8; color: #3A5F9A; }
-    .fit-possible { background: var(--amber-light); color: var(--amber); }
-    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; border-top: 1px solid var(--border-soft); padding-top: 0.875rem; }
-    .card-field { font-size: 0.8125rem; }
-    .card-field .lbl { color: var(--ink-muted); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.15rem; }
-    .card-field .val { color: var(--ink); }
-    .card-field .val.link { color: #3A5F9A; text-decoration: none; }
-    .card-field .val.link:hover { text-decoration: underline; }
-    .outreach-block { grid-column: 1 / -1; background: var(--sage-light); border-radius: var(--radius-sm); padding: 0.75rem 1rem; font-size: 0.8125rem; color: var(--ink-soft); line-height: 1.6; }
-    .outreach-block strong { color: var(--sage); font-weight: 500; }
-    .loading-state { text-align: center; padding: 3rem 1rem; color: var(--ink-muted); font-size: 0.9375rem; }
-    .loading-dots::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
-    @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
-    .error-box { background: var(--rose-light); border: 1px solid rgba(184,92,92,0.2); border-radius: var(--radius-sm); padding: 0.875rem 1rem; font-size: 0.875rem; color: var(--rose); margin-top: 1rem; line-height: 1.6; }
-    .error-box code { display: block; margin-top: 0.4rem; font-family: monospace; font-size: 0.75rem; opacity: 0.75; word-break: break-all; }
-    .bottom-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; padding-top: 0.5rem; }
-    .count-label { font-size: 0.8125rem; color: var(--ink-muted); }
-    .btn-more { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; background: var(--ink); color: var(--cream); border: none; border-radius: var(--radius-sm); padding: 0.6rem 1.25rem; cursor: pointer; transition: opacity 0.15s; }
-    .btn-more:hover { opacity: 0.85; }
-    .empty-state { text-align: center; padding: 2.5rem; color: var(--ink-muted); font-size: 0.9rem; }
-    @media (max-width: 620px) { .form-grid, .form-grid-2 { grid-template-columns: 1fr; } .form-full { grid-column: 1; } header { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
-  .btn-email { display: inline-block; font-family: 'DM Sans', sans-serif; font-size: 0.8125rem; font-weight: 500; padding: 0.4rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--sage); color: var(--sage); text-decoration: none; transition: all 0.15s; }
-.btn-email:hover { background: var(--sage); color: white; }
-```
-  </style>
-</head>
-<body>
-<header>
-  <div class="logo">Vet <em>Leads</em></div>
-  <div class="tagline">Veterinary Prospect Generator</div>
-</header>
-<main>
-  <div class="form-card">
-    <h2 class="form-title">Find your next veterinary client</h2>
-    <p class="form-subtitle">Enter your criteria and generate a targeted list of veterinary practices to reach out to.</p>
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="title">Decision maker title</label>
-        <input type="text" id="title" placeholder="e.g. Practice Manager, Clinical Director" />
-      </div>
-      <div class="form-group">
-        <label for="size">Practice size</label>
-        <div class="select-wrap">
-          <select id="size">
-            <option value="any">Any size</option>
-            <option value="1-10">1–10 employees</option>
-            <option value="11-50">11–50 employees</option>
-            <option value="51-200">51–200 employees</option>
-            <option value="201-500">201–500 employees</option>
-            <option value="500+">500+ employees</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="state">State</label>
-        <div class="select-wrap">
-          <select id="state">
-            <option value="any">Any state</option>
-            <option value="Alabama">Alabama</option>
-            <option value="Alaska">Alaska</option>
-            <option value="Arizona">Arizona</option>
-            <option value="Arkansas">Arkansas</option>
-            <option value="California">California</option>
-            <option value="Colorado">Colorado</option>
-            <option value="Connecticut">Connecticut</option>
-            <option value="Delaware">Delaware</option>
-            <option value="Florida">Florida</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Hawaii">Hawaii</option>
-            <option value="Idaho">Idaho</option>
-            <option value="Illinois">Illinois</option>
-            <option value="Indiana">Indiana</option>
-            <option value="Iowa">Iowa</option>
-            <option value="Kansas">Kansas</option>
-            <option value="Kentucky">Kentucky</option>
-            <option value="Louisiana">Louisiana</option>
-            <option value="Maine">Maine</option>
-            <option value="Maryland">Maryland</option>
-            <option value="Massachusetts">Massachusetts</option>
-            <option value="Michigan">Michigan</option>
-            <option value="Minnesota">Minnesota</option>
-            <option value="Mississippi">Mississippi</option>
-            <option value="Missouri">Missouri</option>
-            <option value="Montana">Montana</option>
-            <option value="Nebraska">Nebraska</option>
-            <option value="Nevada">Nevada</option>
-            <option value="New Hampshire">New Hampshire</option>
-            <option value="New Jersey">New Jersey</option>
-            <option value="New Mexico">New Mexico</option>
-            <option value="New York">New York</option>
-            <option value="North Carolina">North Carolina</option>
-            <option value="North Dakota">North Dakota</option>
-            <option value="Ohio">Ohio</option>
-            <option value="Oklahoma">Oklahoma</option>
-            <option value="Oregon">Oregon</option>
-            <option value="Pennsylvania">Pennsylvania</option>
-            <option value="Rhode Island">Rhode Island</option>
-            <option value="South Carolina">South Carolina</option>
-            <option value="South Dakota">South Dakota</option>
-            <option value="Tennessee">Tennessee</option>
-            <option value="Texas">Texas</option>
-            <option value="Utah">Utah</option>
-            <option value="Vermont">Vermont</option>
-            <option value="Virginia">Virginia</option>
-            <option value="Washington">Washington</option>
-            <option value="West Virginia">West Virginia</option>
-            <option value="Wisconsin">Wisconsin</option>
-            <option value="Wyoming">Wyoming</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group form-full">
-        <label for="service">Your service</label>
-        <input type="text" id="service" placeholder="e.g. HR consulting, practice management software, staffing" />
-      </div>
-    </div>
-    <div class="form-grid-2">
-      <div class="form-group">
-        <label for="specialty">Veterinary specialty</label>
-        <div class="select-wrap">
-          <select id="specialty">
-            <option value="any">Any specialty</option>
-            <option value="Small animal">Small animal</option>
-            <option value="Large animal">Large animal</option>
-            <option value="Equine">Equine</option>
-            <option value="Mixed practice">Mixed practice</option>
-            <option value="Emergency & critical care">Emergency & critical care</option>
-            <option value="Exotic & zoo">Exotic & zoo</option>
-            <option value="Avian">Avian</option>
-            <option value="Dermatology">Dermatology</option>
-            <option value="Oncology">Oncology</option>
-            <option value="Surgery">Surgery</option>
-            <option value="Internal medicine">Internal medicine</option>
-            <option value="Cardiology">Cardiology</option>
-            <option value="Neurology">Neurology</option>
-            <option value="Ophthalmology">Ophthalmology</option>
-            <option value="Corporate group">Corporate group</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="college">Vet college attended</label>
-        <div class="select-wrap">
-          <select id="college">
-            <option value="any">Any college</option>
-            <option value="Auburn University">Auburn University</option>
-            <option value="Colorado State University">Colorado State University</option>
-            <option value="Cornell University">Cornell University</option>
-            <option value="Iowa State University">Iowa State University</option>
-            <option value="Kansas State University">Kansas State University</option>
-            <option value="Lincoln Memorial University">Lincoln Memorial University</option>
-            <option value="Louisiana State University">Louisiana State University</option>
-            <option value="Michigan State University">Michigan State University</option>
-            <option value="Mississippi State University">Mississippi State University</option>
-            <option value="North Carolina State University">NC State University</option>
-            <option value="Ohio State University">Ohio State University</option>
-            <option value="Oklahoma State University">Oklahoma State University</option>
-            <option value="Oregon State University">Oregon State University</option>
-            <option value="Purdue University">Purdue University</option>
-            <option value="Texas A&M University">Texas A&M University</option>
-            <option value="Tufts University">Tufts University</option>
-            <option value="UC Davis">UC Davis</option>
-            <option value="University of Florida">University of Florida</option>
-            <option value="University of Georgia">University of Georgia</option>
-            <option value="University of Illinois">University of Illinois</option>
-            <option value="University of Minnesota">University of Minnesota</option>
-            <option value="University of Missouri">University of Missouri</option>
-            <option value="University of Pennsylvania">University of Pennsylvania</option>
-            <option value="University of Tennessee">University of Tennessee</option>
-            <option value="University of Wisconsin">University of Wisconsin</option>
-            <option value="Virginia Tech">Virginia Tech</option>
-            <option value="Washington State University">Washington State University</option>
-            <option value="Western University of Health Sciences">Western University</option>
-            <option value="Ross University School of Veterinary Medicine">Ross University</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="numProspects">Number of prospects</label>
-        <div class="select-wrap">
-          <select id="numProspects">
-            <option value="4">4 prospects</option>
-            <option value="8">8 prospects</option>
-            <option value="12">12 prospects</option>
-            <option value="16">16 prospects</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <button class="btn-generate" id="generateBtn" onclick="generate(false)">Generate veterinary prospects →</button>
-    <div id="formError"></div>
-  </div>
-  <div id="results"></div>
-</main>
-<script>
-  let allProspects = [];
-  let activeFilter = 'all';
-  const avatarStyles = [
-    {bg:'#E8EFF8',fg:'#3A5F9A'},{bg:'#EAF0EA',fg:'#5C7A5E'},
-    {bg:'#FAF0E0',fg:'#C4812A'},{bg:'#EEEDFE',fg:'#534AB7'},
-    {bg:'#E1F5EE',fg:'#0F6E56'},{bg:'#F5E8E8',fg:'#B85C5C'},
-  ];
-  function initials(name){return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
-  function fitClass(score){if(score==='Strong fit')return 'fit-strong';if(score==='Good fit')return 'fit-good';return 'fit-possible';}
-  function filtered(){if(activeFilter==='all')return allProspects;const map={strong:'Strong fit',good:'Good fit',possible:'Possible fit'};return allProspects.filter(p=>p.fit_score===map[activeFilter]);}
-  function linkedinUrl(hint){if(!hint)return '';if(hint.startsWith('http'))return hint;return 'https://'+hint;}
-  function render(){
-    if(!allProspects.length)return;
-    const vis=filtered();
-    const counts={all:allProspects.length,strong:allProspects.filter(p=>p.fit_score==='Strong fit').length,good:allProspects.filter(p=>p.fit_score==='Good fit').length,possible:allProspects.filter(p=>p.fit_score==='Possible fit').length};
-    const cards=allProspects.map((p,i)=>{
-      const av=avatarStyles[i%avatarStyles.length];
-      const map={strong:'Strong fit',good:'Good fit',possible:'Possible fit'};
-      const hidden=activeFilter!=='all'&&p.fit_score!==map[activeFilter]?'hidden':'';
-      const liUrl=linkedinUrl(p.linkedin_hint);
-      return `<div class="prospect-card ${hidden}"><div class="card-top"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(p.contact_name)}</div><div class="card-name"><h3>${p.contact_name}</h3><p>${p.title} · ${p.company}</p></div><span class="fit-badge ${fitClass(p.fit_score)}">${p.fit_score}</span></div><div class="card-grid"><div class="card-field"><div class="lbl">Specialty</div><div class="val">${p.industry}</div></div><div class="card-field"><div class="lbl">Practice size</div><div class="val">${p.company_size}</div></div><div class="card-field"><div class="lbl">State</div><div class="val">${p.state||'—'}</div></div><div class="card-field"><div class="lbl">Vet college</div><div class="val">${p.vet_college||'—'}</div></div><div class="card-field"><div class="lbl">LinkedIn</div><div class="val"><a class="link" href="${liUrl}" target="_blank">${p.linkedin_hint}</a></div></div><div class="card-field"><div class="lbl">Email guess</div><div class="val">${p.email_guess}</div></div><div class="outreach-block"><strong>Outreach angle:</strong> ${p.outreach_angle}</div></div><div style="margin-top:0.75rem;"><a class="btn-email" href="mailto:${p.email_guess}?subject=${encodeURIComponent(p.email_subject||'')}&body=${encodeURIComponent(p.email_body||'')}" target="_blank">Send email →</a></div></div>`;
-    }).join('');
-    const empty=vis.length===0?'<div class="empty-state">No prospects match this filter.</div>':'';
-    document.getElementById('results').innerHTML=`<div class="toolbar"><div class="filter-pills"><button class="pill ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">All (${counts.all})</button><button class="pill ${activeFilter==='strong'?'active':''}" onclick="setFilter('strong')">Strong fit (${counts.strong})</button><button class="pill ${activeFilter==='good'?'active':''}" onclick="setFilter('good')">Good fit (${counts.good})</button><button class="pill ${activeFilter==='possible'?'active':''}" onclick="setFilter('possible')">Possible fit (${counts.possible})</button></div><button class="btn-export" onclick="exportCSV()">Export CSV</button></div>${cards}${empty}<div class="bottom-bar"><span class="count-label">${vis.length} prospect${vis.length!==1?'s':''} shown</span><button class="btn-more" onclick="generate(true)">Load more →</button></div>`;
+
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('');
+    console.log('Response text preview:', text.slice(0, 100));
+
+    const cleaned = text.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim();
+    const match = cleaned.match(/\[.*\]/s);
+    if (!match) {
+      return { statusCode: 500, body: JSON.stringify({ error: 'No JSON array found in response', raw: text.slice(0, 200) }) };
+    }
+
+    const prospects = JSON.parse(match[0]);
+    console.log('Successfully parsed', prospects.length, 'prospects');
+    return { statusCode: 200, body: JSON.stringify({ prospects }) };
+
+  } catch (err) {
+    console.log('Caught error:', err.message);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
-  function setFilter(f){activeFilter=f;render();}
-  function exportCSV(){
-    const rows=filtered();if(!rows.length)return;
-    const headers=['Contact Name','Title','Practice','Specialty','Practice Size','State','Vet College','LinkedIn URL','Email','Fit Score','Outreach Angle'];
-    const lines=rows.map(p=>[p.contact_name,p.title,p.company,p.industry,p.company_size,p.state||'',p.vet_college||'',linkedinUrl(p.linkedin_hint),p.email_guess,p.fit_score,p.outreach_angle].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
-    const csv=[headers.join(','),...lines].join('\n');
-    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`vet-prospects-${activeFilter}.csv`;a.click();URL.revokeObjectURL(url);
-  }
-  async function generate(append){
-    const titleVal=document.getElementById('title').value.trim();
-    const size=document.getElementById('size').value;
-    const state=document.getElementById('state').value;
-    const service=document.getElementById('service').value.trim();
-    const specialty=document.getElementById('specialty').value;
-    const college=document.getElementById('college').value;
-    const numProspects=parseInt(document.getElementById('numProspects').value);
-    document.getElementById('formError').innerHTML='';
-    if(!titleVal||!service){document.getElementById('formError').innerHTML='<div class="error-box">Please fill in both the decision maker title and your service.</div>';return;}
-    const btn=document.getElementById('generateBtn');btn.disabled=true;btn.textContent='Generating...';
-    if(!append){allProspects=[];activeFilter='all';document.getElementById('results').innerHTML='<div class="loading-state">Finding veterinary prospects<span class="loading-dots"></span></div>';}
-    try{
-      const res=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,service,specialty,college,numProspects,existing:allProspects.map(p=>p.company)})});
-      const data=await res.json();
-      if(!res.ok||data.error){document.getElementById('results').innerHTML=`<div class="error-box">Error: ${data.error||res.statusText}<code>${JSON.stringify(data)}</code></div>`;btn.disabled=false;btn.textContent='Generate veterinary prospects →';return;}
-      allProspects=append?[...allProspects,...data.prospects]:data.prospects;render();
-    }catch(e){document.getElementById('results').innerHTML=`<div class="error-box">Network error: ${e.message}</div>`;}
-    btn.disabled=false;btn.textContent='Generate veterinary prospects →';
-  }
-</script>
-</body>
-</html>
+};
