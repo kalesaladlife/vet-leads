@@ -9,7 +9,7 @@ exports.handler = async function(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
   }
 
-  const count = numProspects || 4;
+  const count = Math.min(numProspects || 4, 4);
 
   const prompt = `You are a B2B lead generation expert specializing in the veterinary industry. Generate exactly ${count} realistic fictional prospect leads for a professional services company targeting veterinary practices.
 
@@ -45,7 +45,7 @@ contact_name, title, company, industry, company_size, state, vet_college, linked
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        max_tokens: 1500,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
