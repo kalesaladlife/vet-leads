@@ -19,20 +19,17 @@ exports.handler = async function(event) {
   const count = Math.min(numProspects || 4, 10);
 
   try {
-    // Build Apollo people search payload
     const apolloPayload = {
-      per_page: count,
+      per_page: count * 3,
       person_titles: [titleVal],
-      organization_industry_tag_ids: [],
       q_keywords: specialty && specialty !== 'any' ? `veterinary ${specialty}` : 'veterinary',
+      contact_email_status: ['verified', 'guessed', 'unavailable'],
     };
 
-    // Add state filter if specified
     if (state && state !== 'any') {
       apolloPayload.person_locations = [`${state}, United States`];
     }
 
-    // Add employee count filter
     if (size && size !== 'any') {
       const sizeMap = {
         '1-10': [1, 10],
@@ -64,19 +61,24 @@ exports.handler = async function(event) {
     const apolloData = await apolloRes.json();
     const people = apolloData.people || [];
 
-    if (people.length === 0) {
-      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No results found — try broader criteria' }) };
+    const validPeople = people.filter(p =>
+      p.name && p.name !== 'Unknown' &&
+      p.organization && p.organization.name &&
+      p.organization.name !== 'Veterinary Site'
+    ).slice(0, count);
+
+    if (validPeople.length === 0) {
+      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No complete results found — try broader criteria' }) };
     }
 
-    // Now use Claude to enrich each person with a fit score and outreach angle
-    const peopleList = people.map(p => ({
+    const peopleList = validPeople.map(p => ({
       name: p.name || 'Unknown',
       title: p.title || titleVal,
       company: p.organization ? p.organization.name : 'Unknown Practice',
       location: p.city && p.state ? `${p.city}, ${p.state}` : (state || 'Unknown'),
       employees: p.organization ? p.organization.estimated_num_employees : null,
       linkedin: p.linkedin_url || '',
-      email: p.email || p.revealed_for_current_team ? p.email : null,
+      email: p.email || null,
     }));
 
     const enrichPrompt = `You are a B2B sales expert. For each of these real veterinary prospects, generate a fit score and personalized outreach content for selling: ${service}.
@@ -84,22 +86,22 @@ exports.handler = async function(event) {
 Prospects:
 ${JSON.stringify(peopleList, null, 2)}
 
-For each prospect, respond with a JSON array where each object has:
-- contact_name (from input)
-- title (from input)
-- company (from input)
-- industry (guess their veterinary specialty based on their name/company)
-- company_size (use employee count if available, otherwise estimate)
-- state (extract from location)
-- vet_college (leave blank as "Unknown")
-- linkedin_hint (from input linkedin field)
-- email_guess (from input email if available, otherwise guess firstname.lastname@companydomain.com)
+For each prospect respond with a JSON array where each object has:
+- contact_name (from input name)
+- title (from input title)
+- company (from input company)
+- industry (guess their veterinary specialty based on their name or company)
+- company_size (use employee count if available, otherwise estimate as a range like "5-10 employees")
+- state (extract from location field)
+- vet_college (leave as "Unknown")
+- linkedin_hint (from input linkedin field, keep as-is)
+- email_guess (from input email if available, otherwise guess as firstname.lastname@companydomain.com)
 - fit_score (one of exactly: "Strong fit", "Good fit", "Possible fit")
-- outreach_angle (1 personalized sentence about why this service fits them)
-- email_subject (short personalized subject line)
-- email_body (3-4 sentence personalized cold email, single paragraph, no special characters)
+- outreach_angle (1 personalized sentence about why this service fits them specifically)
+- email_subject (short personalized subject line for a cold outreach email)
+- email_body (3-4 sentence personalized cold email written as a single paragraph with no line breaks or special characters)
 
-Respond ONLY with a valid JSON array. No markdown, no backticks.`;
+Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation.`;
 
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
