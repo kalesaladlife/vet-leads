@@ -16,7 +16,7 @@ exports.handler = async function(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
   }
 
-  const count = Math.min(numProspects || 4, 10);
+  const count = 2;
 
   try {
     const apolloPayload = {
