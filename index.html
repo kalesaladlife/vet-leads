@@ -26,7 +26,6 @@
     .form-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.3rem; letter-spacing: -0.02em; }
     .form-subtitle { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: 1.5rem; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
     .form-full { grid-column: 1 / -1; }
     .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
     label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
@@ -78,7 +77,7 @@
     .btn-more { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; background: var(--ink); color: var(--cream); border: none; border-radius: var(--radius-sm); padding: 0.6rem 1.25rem; cursor: pointer; transition: opacity 0.15s; }
     .btn-more:hover { opacity: 0.85; }
     .empty-state { text-align: center; padding: 2.5rem; color: var(--ink-muted); font-size: 0.9rem; }
-    @media (max-width: 620px) { .form-grid, .form-grid-2 { grid-template-columns: 1fr; } .form-full { grid-column: 1; } header { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
+    @media (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } .form-full { grid-column: 1; } header { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
   </style>
 </head>
 <body>
@@ -93,7 +92,23 @@
     <div class="form-grid">
       <div class="form-group">
         <label for="title">Decision maker title</label>
-        <input type="text" id="title" placeholder="e.g. Practice Manager, Clinical Director" />
+        <input type="text" id="title" placeholder="e.g. Practice Manager, Veterinarian" />
+      </div>
+      <div class="form-group">
+        <label for="seniority">Seniority level</label>
+        <div class="select-wrap">
+          <select id="seniority">
+            <option value="any">Any seniority</option>
+            <option value="owner">Owner</option>
+            <option value="partner">Partner</option>
+            <option value="c_suite">C-Suite</option>
+            <option value="vp">VP</option>
+            <option value="director">Director</option>
+            <option value="manager">Manager</option>
+            <option value="senior">Senior</option>
+            <option value="entry">Entry level</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label for="size">Practice size</label>
@@ -105,6 +120,19 @@
             <option value="51-200">51–200 employees</option>
             <option value="201-500">201–500 employees</option>
             <option value="500+">500+ employees</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="revenue">Revenue range</label>
+        <div class="select-wrap">
+          <select id="revenue">
+            <option value="any">Any revenue</option>
+            <option value="0,1000000">Under $1M</option>
+            <option value="1000000,5000000">$1M – $5M</option>
+            <option value="5000000,10000000">$5M – $10M</option>
+            <option value="10000000,50000000">$10M – $50M</option>
+            <option value="50000000,1000000000">$50M+</option>
           </select>
         </div>
       </div>
@@ -166,12 +194,10 @@
           </select>
         </div>
       </div>
-      <div class="form-group form-full">
-        <label for="service">Your service</label>
-        <input type="text" id="service" placeholder="e.g. HR consulting, practice management software, staffing" />
+      <div class="form-group">
+        <label for="city">City</label>
+        <input type="text" id="city" placeholder="e.g. Miami, Austin" />
       </div>
-    </div>
-    <div class="form-grid-2">
       <div class="form-group">
         <label for="specialty">Veterinary specialty</label>
         <div class="select-wrap">
@@ -196,43 +222,6 @@
         </div>
       </div>
       <div class="form-group">
-        <label for="college">Vet college attended</label>
-        <div class="select-wrap">
-          <select id="college">
-            <option value="any">Any college</option>
-            <option value="Auburn University">Auburn University</option>
-            <option value="Colorado State University">Colorado State University</option>
-            <option value="Cornell University">Cornell University</option>
-            <option value="Iowa State University">Iowa State University</option>
-            <option value="Kansas State University">Kansas State University</option>
-            <option value="Lincoln Memorial University">Lincoln Memorial University</option>
-            <option value="Louisiana State University">Louisiana State University</option>
-            <option value="Michigan State University">Michigan State University</option>
-            <option value="Mississippi State University">Mississippi State University</option>
-            <option value="North Carolina State University">NC State University</option>
-            <option value="Ohio State University">Ohio State University</option>
-            <option value="Oklahoma State University">Oklahoma State University</option>
-            <option value="Oregon State University">Oregon State University</option>
-            <option value="Purdue University">Purdue University</option>
-            <option value="Texas A and M University">Texas A and M University</option>
-            <option value="Tufts University">Tufts University</option>
-            <option value="UC Davis">UC Davis</option>
-            <option value="University of Florida">University of Florida</option>
-            <option value="University of Georgia">University of Georgia</option>
-            <option value="University of Illinois">University of Illinois</option>
-            <option value="University of Minnesota">University of Minnesota</option>
-            <option value="University of Missouri">University of Missouri</option>
-            <option value="University of Pennsylvania">University of Pennsylvania</option>
-            <option value="University of Tennessee">University of Tennessee</option>
-            <option value="University of Wisconsin">University of Wisconsin</option>
-            <option value="Virginia Tech">Virginia Tech</option>
-            <option value="Washington State University">Washington State University</option>
-            <option value="Western University of Health Sciences">Western University</option>
-            <option value="Ross University School of Veterinary Medicine">Ross University</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
         <label for="numProspects">Number of prospects</label>
         <div class="select-wrap">
           <select id="numProspects">
@@ -243,6 +232,10 @@
           </select>
         </div>
       </div>
+      <div class="form-group form-full">
+        <label for="service">Your service</label>
+        <input type="text" id="service" placeholder="e.g. Wellness plans, HR consulting, practice management software" />
+      </div>
     </div>
     <button class="btn-generate" id="generateBtn" onclick="generate(false)">Generate veterinary prospects →</button>
     <div id="formError"></div>
@@ -251,6 +244,7 @@
 </main>
 <script>
   let allProspects = [];
+  let seenIds = [];
   let activeFilter = 'all';
   const avatarStyles = [
     {bg:'#E8EFF8',fg:'#3A5F9A'},{bg:'#EAF0EA',fg:'#5C7A5E'},
@@ -271,7 +265,7 @@
       const hidden=activeFilter!=='all'&&p.fit_score!==map[activeFilter]?'hidden':'';
       const liUrl=linkedinUrl(p.linkedin_hint);
       const mailtoUrl='mailto:'+p.email_guess+'?subject='+encodeURIComponent(p.email_subject||'')+'&body='+encodeURIComponent(p.email_body||'');
-      return `<div class="prospect-card ${hidden}"><div class="card-top"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(p.contact_name)}</div><div class="card-name"><h3>${p.contact_name}</h3><p>${p.title} · ${p.company}</p></div><span class="fit-badge ${fitClass(p.fit_score)}">${p.fit_score}</span></div><div class="card-grid"><div class="card-field"><div class="lbl">Specialty</div><div class="val">${p.industry}</div></div><div class="card-field"><div class="lbl">Practice size</div><div class="val">${p.company_size}</div></div><div class="card-field"><div class="lbl">State</div><div class="val">${p.state||'—'}</div></div><div class="card-field"><div class="lbl">Vet college</div><div class="val">${p.vet_college||'—'}</div></div><div class="card-field"><div class="lbl">LinkedIn</div><div class="val"><a class="link" href="${liUrl}" target="_blank">${p.linkedin_hint}</a></div></div><div class="card-field"><div class="lbl">Email</div><div class="val">${p.email_guess}</div></div><div class="outreach-block"><strong>Outreach angle:</strong> ${p.outreach_angle}</div></div><a class="btn-email" href="${mailtoUrl}">Send email →</a></div>`;
+      return `<div class="prospect-card ${hidden}"><div class="card-top"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(p.contact_name)}</div><div class="card-name"><h3>${p.contact_name}</h3><p>${p.title} · ${p.company}</p></div><span class="fit-badge ${fitClass(p.fit_score)}">${p.fit_score}</span></div><div class="card-grid"><div class="card-field"><div class="lbl">Specialty</div><div class="val">${p.industry}</div></div><div class="card-field"><div class="lbl">Practice size</div><div class="val">${p.company_size}</div></div><div class="card-field"><div class="lbl">Location</div><div class="val">${p.city ? p.city+', ' : ''}${p.state||'—'}</div></div><div class="card-field"><div class="lbl">Revenue</div><div class="val">${p.revenue||'—'}</div></div><div class="card-field"><div class="lbl">LinkedIn</div><div class="val">${liUrl ? '<a class="link" href="'+liUrl+'" target="_blank">View profile</a>' : '—'}</div></div><div class="card-field"><div class="lbl">Email</div><div class="val">${p.email_guess}</div></div><div class="outreach-block"><strong>Outreach angle:</strong> ${p.outreach_angle}</div></div><a class="btn-email" href="${mailtoUrl}">Send email →</a></div>`;
     }).join('');
     const empty=vis.length===0?'<div class="empty-state">No prospects match this filter.</div>':'';
     document.getElementById('results').innerHTML=`<div class="toolbar"><div class="filter-pills"><button class="pill ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">All (${counts.all})</button><button class="pill ${activeFilter==='strong'?'active':''}" onclick="setFilter('strong')">Strong fit (${counts.strong})</button><button class="pill ${activeFilter==='good'?'active':''}" onclick="setFilter('good')">Good fit (${counts.good})</button><button class="pill ${activeFilter==='possible'?'active':''}" onclick="setFilter('possible')">Possible fit (${counts.possible})</button></div><button class="btn-export" onclick="exportCSV()">Export CSV</button></div>${cards}${empty}<div class="bottom-bar"><span class="count-label">${vis.length} prospect${vis.length!==1?'s':''} shown</span><button class="btn-more" onclick="generate(true)">Load more →</button></div>`;
@@ -279,8 +273,8 @@
   function setFilter(f){activeFilter=f;render();}
   function exportCSV(){
     const rows=filtered();if(!rows.length)return;
-    const headers=['Contact Name','Title','Practice','Specialty','Practice Size','State','Vet College','LinkedIn URL','Email','Fit Score','Outreach Angle'];
-    const lines=rows.map(p=>[p.contact_name,p.title,p.company,p.industry,p.company_size,p.state||'',p.vet_college||'',linkedinUrl(p.linkedin_hint),p.email_guess,p.fit_score,p.outreach_angle].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+    const headers=['Contact Name','Title','Company','Specialty','Practice Size','City','State','Revenue','LinkedIn','Email','Fit Score','Outreach Angle'];
+    const lines=rows.map(p=>[p.contact_name,p.title,p.company,p.industry,p.company_size,p.city||'',p.state||'',p.revenue||'',linkedinUrl(p.linkedin_hint),p.email_guess,p.fit_score,p.outreach_angle].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
     const csv=[headers.join(','),...lines].join('\n');
     const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`vet-prospects-${activeFilter}.csv`;a.click();URL.revokeObjectURL(url);
@@ -289,19 +283,28 @@
     const titleVal=document.getElementById('title').value.trim();
     const size=document.getElementById('size').value;
     const state=document.getElementById('state').value;
+    const city=document.getElementById('city').value.trim();
     const service=document.getElementById('service').value.trim();
     const specialty=document.getElementById('specialty').value;
-    const college=document.getElementById('college').value;
+    const seniority=document.getElementById('seniority').value;
+    const revenue=document.getElementById('revenue').value;
     const numProspects=parseInt(document.getElementById('numProspects').value);
     document.getElementById('formError').innerHTML='';
     if(!titleVal||!service){document.getElementById('formError').innerHTML='<div class="error-box">Please fill in both the decision maker title and your service.</div>';return;}
     const btn=document.getElementById('generateBtn');btn.disabled=true;btn.textContent='Generating...';
-    if(!append){allProspects=[];activeFilter='all';document.getElementById('results').innerHTML='<div class="loading-state">Finding veterinary prospects<span class="loading-dots"></span></div>';}
+    if(!append){allProspects=[];seenIds=[];activeFilter='all';document.getElementById('results').innerHTML='<div class="loading-state">Finding veterinary prospects<span class="loading-dots"></span></div>';}
     try{
-      const res=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,service,specialty,college,numProspects,existing:allProspects.map(p=>p.company)})});
+      const res=await fetch('/.netlify/functions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titleVal,size,state,city,service,specialty,seniority,revenue,numProspects,seenIds})});
       const data=await res.json();
       if(!res.ok||data.error){document.getElementById('results').innerHTML=`<div class="error-box">Error: ${data.error||res.statusText}<code>${JSON.stringify(data)}</code></div>`;btn.disabled=false;btn.textContent='Generate veterinary prospects →';return;}
-      allProspects=append?[...allProspects,...data.prospects]:data.prospects;render();
+      if(data.prospects&&data.prospects.length>0){
+        const newIds=data.prospects.map(p=>p.apollo_id).filter(Boolean);
+        seenIds=[...seenIds,...newIds];
+        allProspects=append?[...allProspects,...data.prospects]:data.prospects;
+        render();
+      } else {
+        document.getElementById('results').innerHTML=`<div class="empty-state">${data.message||'No results found — try broader criteria'}</div>`;
+      }
     }catch(e){document.getElementById('results').innerHTML=`<div class="error-box">Network error: ${e.message}</div>`;}
     btn.disabled=false;btn.textContent='Generate veterinary prospects →';
   }
