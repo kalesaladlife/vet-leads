@@ -3,40 +3,105 @@ exports.handler = async function(event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const { titleVal, size, state, service, specialty, college, numProspects, existing } = JSON.parse(event.body);
+  let parsed;
+  try {
+    parsed = JSON.parse(event.body);
+  } catch(e) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Bad JSON: ' + e.message }) };
+  }
+
+  const { titleVal, size, state, service, specialty, college, numProspects, existing } = parsed;
 
   if (!titleVal || !service) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
   }
 
-  const count = Math.min(numProspects || 4, 4);
-
-  const prompt = `You are a B2B lead generation expert specializing in the veterinary industry. Generate exactly ${count} realistic fictional prospect leads for a professional services company targeting veterinary practices.
-
-Service being sold: ${service}
-Industry: Veterinary
-Decision maker title: ${titleVal}
-Practice size preference: ${size || 'any'}
-State: ${state && state !== 'any' ? state : 'any US state'}
-Veterinary specialty: ${specialty && specialty !== 'any' ? specialty : 'any specialty'}
-Vet college attended: ${college && college !== 'any' ? college : 'any veterinary college'}
-${existing && existing.length ? `Already generated practices: ${existing.join(', ')} - generate ${count} different ones.` : ''}
-
-Rules:
-- Distribute fit scores realistically across the prospects
-- Use "industry" for the veterinary specialty/practice type
-- Use "state" for the US state${state && state !== 'any' ? ` - all prospects must be in ${state}` : ''}
-- Use "vet_college" for the vet school the contact attended${college && college !== 'any' ? ` - all prospects must have attended ${college}` : ''}
-- "linkedin_hint" must be a full URL like "https://linkedin.com/in/firstname-lastname"
-- Do not use special characters like ampersands in any field values
-- "email_subject" should be a short personalized cold outreach subject line referencing their practice or role
-- "email_body" should be a 3-4 sentence personalized cold email using their first name, referencing their practice name, specialty, and why the service would help them specifically. End with a call to action to schedule a quick call. Write it as a single flowing paragraph with no line breaks or special characters.
-
-Respond ONLY with a valid JSON array. No markdown, no backticks, no explanation. Just the raw JSON array of ${count} objects with these exact keys:
-contact_name, title, company, industry, company_size, state, vet_college, linkedin_hint, email_guess, fit_score (must be exactly "Strong fit" or "Good fit" or "Possible fit"), outreach_angle, email_subject, email_body`;
+  const count = Math.min(numProspects || 4, 10);
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Build Apollo people search payload
+    const apolloPayload = {
+      per_page: count,
+      person_titles: [titleVal],
+      organization_industry_tag_ids: [],
+      q_keywords: specialty && specialty !== 'any' ? `veterinary ${specialty}` : 'veterinary',
+    };
+
+    // Add state filter if specified
+    if (state && state !== 'any') {
+      apolloPayload.person_locations = [`${state}, United States`];
+    }
+
+    // Add employee count filter
+    if (size && size !== 'any') {
+      const sizeMap = {
+        '1-10': [1, 10],
+        '11-50': [11, 50],
+        '51-200': [51, 200],
+        '201-500': [201, 500],
+        '500+': [500, 100000],
+      };
+      if (sizeMap[size]) {
+        apolloPayload.organization_num_employees_ranges = [`${sizeMap[size][0]},${sizeMap[size][1]}`];
+      }
+    }
+
+    const apolloRes = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'X-Api-Key': process.env.APOLLO_API_KEY,
+      },
+      body: JSON.stringify(apolloPayload),
+    });
+
+    if (!apolloRes.ok) {
+      const errText = await apolloRes.text();
+      return { statusCode: apolloRes.status, body: JSON.stringify({ error: 'Apollo error: ' + errText.slice(0, 200) }) };
+    }
+
+    const apolloData = await apolloRes.json();
+    const people = apolloData.people || [];
+
+    if (people.length === 0) {
+      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No results found — try broader criteria' }) };
+    }
+
+    // Now use Claude to enrich each person with a fit score and outreach angle
+    const peopleList = people.map(p => ({
+      name: p.name || 'Unknown',
+      title: p.title || titleVal,
+      company: p.organization ? p.organization.name : 'Unknown Practice',
+      location: p.city && p.state ? `${p.city}, ${p.state}` : (state || 'Unknown'),
+      employees: p.organization ? p.organization.estimated_num_employees : null,
+      linkedin: p.linkedin_url || '',
+      email: p.email || p.revealed_for_current_team ? p.email : null,
+    }));
+
+    const enrichPrompt = `You are a B2B sales expert. For each of these real veterinary prospects, generate a fit score and personalized outreach content for selling: ${service}.
+
+Prospects:
+${JSON.stringify(peopleList, null, 2)}
+
+For each prospect, respond with a JSON array where each object has:
+- contact_name (from input)
+- title (from input)
+- company (from input)
+- industry (guess their veterinary specialty based on their name/company)
+- company_size (use employee count if available, otherwise estimate)
+- state (extract from location)
+- vet_college (leave blank as "Unknown")
+- linkedin_hint (from input linkedin field)
+- email_guess (from input email if available, otherwise guess firstname.lastname@companydomain.com)
+- fit_score (one of exactly: "Strong fit", "Good fit", "Possible fit")
+- outreach_angle (1 personalized sentence about why this service fits them)
+- email_subject (short personalized subject line)
+- email_body (3-4 sentence personalized cold email, single paragraph, no special characters)
+
+Respond ONLY with a valid JSON array. No markdown, no backticks.`;
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,23 +110,17 @@ contact_name, title, company, industry, company_size, state, vet_college, linked
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: enrichPrompt }],
       }),
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return { statusCode: response.status, body: JSON.stringify({ error: errText }) };
-    }
-
-    const data = await response.json();
-    const text = data.content.map(b => b.text || '').join('');
-
+    const claudeData = await claudeRes.json();
+    const text = claudeData.content.map(b => b.text || '').join('');
     const cleaned = text.replace(/\\n/g, ' ').replace(/\n/g, ' ').trim();
     const match = cleaned.match(/\[.*\]/s);
     if (!match) {
-      return { statusCode: 500, body: JSON.stringify({ error: 'No JSON array found in response', raw: text.slice(0, 200) }) };
+      return { statusCode: 500, body: JSON.stringify({ error: 'Could not parse enrichment response', raw: text.slice(0, 200) }) };
     }
 
     const prospects = JSON.parse(match[0]);
