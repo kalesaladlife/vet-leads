@@ -23,7 +23,7 @@ exports.handler = async function(event) {
       per_page: 25,
       person_titles: [titleVal],
       person_locations: state && state !== 'any' ? [`${state}, United States`] : ['United States'],
-      organization_industry_tag_ids: ['5567cd4773696439b10b0000'],
+      organization_keywords: ['veterinary', 'animal hospital', 'animal clinic', 'vet clinic'],
     };
 
     if (size && size !== 'any') {
@@ -57,6 +57,20 @@ exports.handler = async function(event) {
     const apolloData = await apolloRes.json();
     const people = apolloData.people || [];
 
+    // Return debug info so we can see what's coming back
+    if (people.length === 0) {
+      return { statusCode: 200, body: JSON.stringify({
+        prospects: [],
+        message: 'No results found',
+        debug: {
+          total: apolloData.pagination ? apolloData.pagination.total_entries : 0,
+          returned: people.length,
+          payload_sent: apolloPayload,
+          apollo_error: apolloData.error || null,
+        }
+      })};
+    }
+
     const validPeople = people.filter(p =>
       p.name &&
       p.first_name &&
@@ -66,10 +80,10 @@ exports.handler = async function(event) {
     ).slice(0, count);
 
     if (validPeople.length === 0) {
-      return { statusCode: 200, body: JSON.stringify({ 
-        prospects: [], 
-        message: 'No results found — try a different title like "Veterinarian" or "Practice Manager"',
-        debug: { total: apolloData.pagination ? apolloData.pagination.total_entries : 0, returned: people.length }
+      return { statusCode: 200, body: JSON.stringify({
+        prospects: [],
+        message: 'Results found but missing required fields',
+        debug: { total: apolloData.pagination ? apolloData.pagination.total_entries : 0, returned: people.length, sample: people[0] }
       })};
     }
 
