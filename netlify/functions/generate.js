@@ -24,6 +24,7 @@ exports.handler = async function(event) {
       person_titles: [titleVal],
       person_locations: state && state !== 'any' ? [`${state}, United States`] : ['United States'],
       organization_keywords: ['veterinary', 'animal hospital', 'animal clinic', 'vet clinic'],
+      contact_email_status: ['verified', 'guessed'],
     };
 
     if (size && size !== 'any') {
@@ -58,61 +59,63 @@ exports.handler = async function(event) {
       return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No results found — try broader criteria' }) };
     }
 
-    // Take top candidates and reveal them
-    const candidates = people.slice(0, count);
-    const revealedPeople = [];
+    // Use bulk enrich endpoint to reveal full contact details
+    const ids = people.slice(0, count).map(p => p.id);
+    
+    const enrichRes = await fetch('https://api.apollo.io/api/v1/people/bulk_match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': process.env.APOLLO_API_KEY,
+      },
+      body: JSON.stringify({
+        details: ids.map(id => ({ id })),
+        reveal_personal_emails: false,
+      }),
+    });
 
-    for (const person of candidates) {
-      try {
-        const revealRes = await fetch(`https://api.apollo.io/api/v1/people/${person.id}/match`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': process.env.APOLLO_API_KEY,
-          },
-          body: JSON.stringify({ reveal_personal_emails: false }),
-        });
-
-        if (revealRes.ok) {
-          const revealData = await revealRes.json();
-          const p = revealData.person || person;
-          if (p.first_name && p.last_name && p.organization) {
-            revealedPeople.push(p);
-          }
-        } else {
-          // Use what we have even if reveal fails
-          if (person.first_name && person.organization) {
-            revealedPeople.push(person);
-          }
-        }
-      } catch(e) {
-        if (person.first_name && person.organization) {
-          revealedPeople.push(person);
-        }
+    let enrichedPeople = people.slice(0, count);
+    if (enrichRes.ok) {
+      const enrichData = await enrichRes.json();
+      if (enrichData.matches && enrichData.matches.length > 0) {
+        enrichedPeople = enrichData.matches;
       }
     }
 
-    if (revealedPeople.length === 0) {
-      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'Could not reveal contact details — check your Apollo plan' }) };
-    }
+    const prospects = enrichedPeople
+      .filter(p => p.first_name && p.organization && p.organization.name)
+      .map(p => {
+        const lastName = p.last_name || '';
+        const domain = p.organization.website_url
+          ? p.organization.website_url.replace(/https?:\/\//, '').replace(/\/$/, '').split('/')[0]
+          : 'unknown.com';
+        const email = p.email ||
+          (lastName
+            ? `${p.first_name.toLowerCase()}.${lastName.toLowerCase()}@${domain}`
+            : `${p.first_name.toLowerCase()}@${domain}`);
 
-    const prospects = revealedPeople.map(p => ({
-      contact_name: `${p.first_name} ${p.last_name || ''}`.trim(),
-      title: p.title || titleVal,
-      company: p.organization ? p.organization.name : 'Unknown',
-      industry: 'Veterinary',
-      company_size: p.organization && p.organization.estimated_num_employees
-        ? `${p.organization.estimated_num_employees} employees`
-        : 'Unknown',
-      state: p.state || state || 'Unknown',
-      vet_college: 'Unknown',
-      linkedin_hint: p.linkedin_url || '',
-      email_guess: p.email || `${p.first_name.toLowerCase()}.${(p.last_name||'').toLowerCase()}@${p.organization && p.organization.website_url ? p.organization.website_url.replace(/https?:\/\//, '').replace(/\/$/, '') : 'unknown.com'}`,
-      fit_score: 'Good fit',
-      outreach_angle: `${p.first_name} at ${p.organization ? p.organization.name : 'their practice'} may benefit from ${service}.`,
-      email_subject: `${service} for ${p.organization ? p.organization.name : 'your practice'}`,
-      email_body: `Hi ${p.first_name}, I wanted to reach out about ${service} for ${p.organization ? p.organization.name : 'your practice'}. I'd love to schedule a quick call to learn more about your needs. Would you have 15 minutes this week?`,
-    }));
+        return {
+          contact_name: `${p.first_name} ${lastName}`.trim(),
+          title: p.title || titleVal,
+          company: p.organization.name,
+          industry: 'Veterinary',
+          company_size: p.organization.estimated_num_employees
+            ? `${p.organization.estimated_num_employees} employees`
+            : 'Unknown',
+          state: p.state || state || 'Unknown',
+          vet_college: 'Unknown',
+          linkedin_hint: p.linkedin_url || '',
+          email_guess: email,
+          fit_score: 'Good fit',
+          outreach_angle: `${p.first_name} at ${p.organization.name} may benefit from ${service}.`,
+          email_subject: `${service} for ${p.organization.name}`,
+          email_body: `Hi ${p.first_name}, I wanted to reach out about ${service} for ${p.organization.name}. I'd love to schedule a quick call to learn more about your needs. Would you have 15 minutes this week?`,
+        };
+      });
+
+    if (prospects.length === 0) {
+      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No complete results — try broader criteria' }) };
+    }
 
     return { statusCode: 200, body: JSON.stringify({ prospects }) };
 
