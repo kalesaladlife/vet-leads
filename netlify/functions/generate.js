@@ -10,23 +10,39 @@ exports.handler = async function(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Bad JSON: ' + e.message }) };
   }
 
-  const { titleVal, size, state, service, specialty, numProspects } = parsed;
+  const { titleVal, size, state, city, service, specialty, seniority, revenue, numProspects, seenIds } = parsed;
 
   if (!titleVal || !service) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
   }
 
   const count = Math.min(numProspects || 4, 10);
+  const seen = seenIds || [];
 
   try {
     const apolloPayload = {
       per_page: 25,
       person_titles: [titleVal],
-      person_locations: state && state !== 'any' ? [`${state}, United States`] : ['United States'],
       organization_keywords: ['veterinary', 'animal hospital', 'animal clinic', 'vet clinic'],
-      contact_email_status: ['verified', 'guessed'],
     };
 
+    // Location filter — city takes priority over state
+    if (city) {
+      apolloPayload.person_locations = state && state !== 'any'
+        ? [`${city}, ${state}, United States`]
+        : [`${city}, United States`];
+    } else if (state && state !== 'any') {
+      apolloPayload.person_locations = [`${state}, United States`];
+    } else {
+      apolloPayload.person_locations = ['United States'];
+    }
+
+    // Seniority filter
+    if (seniority && seniority !== 'any') {
+      apolloPayload.person_seniorities = [seniority];
+    }
+
+    // Employee size filter
     if (size && size !== 'any') {
       const sizeMap = {
         '1-10': [1, 10], '11-50': [11, 50], '51-200': [51, 200],
@@ -35,6 +51,12 @@ exports.handler = async function(event) {
       if (sizeMap[size]) {
         apolloPayload.organization_num_employees_ranges = [`${sizeMap[size][0]},${sizeMap[size][1]}`];
       }
+    }
+
+    // Revenue filter
+    if (revenue && revenue !== 'any') {
+      const [min, max] = revenue.split(',');
+      apolloPayload.revenue_range = { min: parseInt(min), max: parseInt(max) };
     }
 
     const apolloRes = await fetch('https://api.apollo.io/api/v1/mixed_people/api_search', {
@@ -55,13 +77,17 @@ exports.handler = async function(event) {
     const apolloData = await apolloRes.json();
     const people = apolloData.people || [];
 
-    if (people.length === 0) {
-      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No results found — try broader criteria' }) };
+    // Filter out already seen people
+    const freshPeople = people.filter(p => !seen.includes(p.id));
+
+    if (freshPeople.length === 0) {
+      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No new results found — try different criteria' }) };
     }
 
-    // Use bulk enrich endpoint to reveal full contact details
-    const ids = people.slice(0, count).map(p => p.id);
-    
+    // Reveal full details via bulk match
+    const candidates = freshPeople.slice(0, count);
+    const ids = candidates.map(p => p.id);
+
     const enrichRes = await fetch('https://api.apollo.io/api/v1/people/bulk_match', {
       method: 'POST',
       headers: {
@@ -74,7 +100,7 @@ exports.handler = async function(event) {
       }),
     });
 
-    let enrichedPeople = people.slice(0, count);
+    let enrichedPeople = candidates;
     if (enrichRes.ok) {
       const enrichData = await enrichRes.json();
       if (enrichData.matches && enrichData.matches.length > 0) {
@@ -94,7 +120,12 @@ exports.handler = async function(event) {
             ? `${p.first_name.toLowerCase()}.${lastName.toLowerCase()}@${domain}`
             : `${p.first_name.toLowerCase()}@${domain}`);
 
+        const revenueVal = p.organization.annual_revenue
+          ? `$${(p.organization.annual_revenue / 1000000).toFixed(1)}M`
+          : '—';
+
         return {
+          apollo_id: p.id,
           contact_name: `${p.first_name} ${lastName}`.trim(),
           title: p.title || titleVal,
           company: p.organization.name,
@@ -102,8 +133,9 @@ exports.handler = async function(event) {
           company_size: p.organization.estimated_num_employees
             ? `${p.organization.estimated_num_employees} employees`
             : 'Unknown',
+          city: p.city || city || '',
           state: p.state || state || 'Unknown',
-          vet_college: 'Unknown',
+          revenue: revenueVal,
           linkedin_hint: p.linkedin_url || '',
           email_guess: email,
           fit_score: 'Good fit',
@@ -112,10 +144,6 @@ exports.handler = async function(event) {
           email_body: `Hi ${p.first_name}, I wanted to reach out about ${service} for ${p.organization.name}. I'd love to schedule a quick call to learn more about your needs. Would you have 15 minutes this week?`,
         };
       });
-
-    if (prospects.length === 0) {
-      return { statusCode: 200, body: JSON.stringify({ prospects: [], message: 'No complete results — try broader criteria' }) };
-    }
 
     return { statusCode: 200, body: JSON.stringify({ prospects }) };
 
